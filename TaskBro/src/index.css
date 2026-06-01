@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary:       #6246EA;
+  --color-primary-hover: #4f35d2;
+  --color-surface:       #D1D1E9;
+  --color-surface-2:     #EBEBF5;
+  --color-heading:       #2B2C34;
+  --color-danger:        #E45858;
+  --font-sans:           'Inter', sans-serif;
+  --shadow-card:         0 2px 8px rgba(43,44,52,0.08);
+  --shadow-panel:        0 8px 32px rgba(43,44,52,0.12);
+}
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #F0EFED;    background-image:
+      radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(96,165,250,0.14), transparent 24%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;    color: #2B2C34;
+    height: 100%;
+    overflow: hidden;
+  }
+  input, textarea, select {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+html, #root { height: 100%; }
+
+@layer utilities {
+  /* Auth */
+  @keyframes authFadeUp {
+    from { opacity: 0; transform: translateY(18px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .auth-enter { animation: authFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+  /* Board filter bar */
+  @keyframes filterFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes clearPop {
+    0%   { opacity: 0; transform: scale(0.75); }
+    65%  { transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes ddFadeIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .filter-bar { animation: filterFadeIn 0.22s cubic-bezier(.4,0,.2,1) both; }
+  .clear-pop  { animation: clearPop 0.22s cubic-bezier(.4,0,.2,1) both; }
+  .kb-toggle  { transition: background 0.15s, color 0.15s, box-shadow 0.15s; }
+  .kb-toggle:hover:not(.kb-on) { background: #ececec !important; }
+  .search-input { transition: width 0.2s ease, border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+  .search-input:focus { width: 230px !important; border-color: #111 !important; background: #fff !important; box-shadow: 0 0 0 3px rgba(0,0,0,0.07); outline: none; }
+  .clear-btn  { transition: background 0.15s, color 0.15s; }
+  .clear-btn:hover { background: #111 !important; color: #fff !important; }
+  .xclear     { transition: opacity 0.15s, transform 0.15s; }
+  .xclear:hover { opacity: 1 !important; transform: translateY(-50%) scale(1.25) !important; }
+
+  /* Projects page */
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.96); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Toast component */
+  @keyframes toastItemIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes toastItemOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(4px) scale(0.97); }
+  }
+
+  /* Modals */
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #D1D1D5;
+    border-radius: 4px;
+  }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .panel-slide-in {
+    animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(24px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+}
