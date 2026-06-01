@@ -64,8 +64,6 @@ export default function BoardPage() {
 
       const now = new Date()
       if (dateFilter === "today") {
-        // Use a 24-hour rolling window so UTC timestamps shifted by timezone
-        // (e.g. UTC+8 makes "May 31 UTC" appear as "Jun 1 local") still match
         const msIn24h = 24 * 60 * 60 * 1000
         if (now - lastActivity > msIn24h) return false
       } else if (dateFilter === "week") {

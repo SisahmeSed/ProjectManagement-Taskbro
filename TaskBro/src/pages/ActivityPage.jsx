@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { useChangelogs } from "../store/ChangelogContext"
 import { useAuth } from "../store/AuthContext"
 import { getAllLogs } from "../api/changelog.api"
 import { getAllTasks } from "../api/tasks.api"
 import { getAllProjects } from "../api/projects.api"
+import { useNavigate } from "react-router-dom"
 
 const STATUS_CONFIG = {
   "Todo":        { label: "To-do",       color: "#6B7280", bg: "#F3F4F6", dot: "#A1A1AA" },
@@ -20,7 +21,7 @@ const AVATAR_PALETTE = [
   { bg: "#FFEDD5", text: "#C2410C" },
   { bg: "#E0F2FE", text: "#0369A1" },
   { bg: "#FCE7F3", text: "#BE185D" },
-]
+] 
 
 function getAvatarStyle(name = "") {
   return AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length]
@@ -36,9 +37,6 @@ function getInitials(name = "") {
 
 function formatTime(d) {
   if (!d) return ""
-  // KNOWN ISSUE: Backend saves timestamps in Manila local time (UTC+8) but labels them as UTC.
-  // This causes a double UTC+8 conversion in the browser, showing times 8 hours ahead.
-  // For temporaray fixed is that i subtract 8 hours on the frontend until backend is fixed to use UTC_TIMESTAMP().
   const date = new Date(d)
   date.setHours(date.getHours() - 8)
   return date.toLocaleTimeString("en-US", {
@@ -51,7 +49,7 @@ function formatTime(d) {
 function getGroupKey(d) {
   if (!d) return "Unknown"
   const date = new Date(d)
-  date.setHours(date.getHours() - 8) // subtract 8 Hours to fix the known timestamp issue
+  date.setHours(date.getHours() - 8)
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(+today - 86400000)
@@ -63,12 +61,6 @@ function getGroupKey(d) {
     .toUpperCase()
 }
 
-function withinDays(d, days) {
-  if (!d || days === Infinity) return true
-  const date = new Date(d)
-  date.setHours(date.getHours() - 8)  // subtract 8 Hours to fix the known timestamp issue
-  return Date.now() - date.getTime() <= days * 86400000
-}
 
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] || {
@@ -203,15 +195,86 @@ function ActivityRow({ log, projectName, currentUser, taskNameMap }) {
 function DateGroup({ label, children }) {
   return (
     <div className="mb-2">
-
       <div className="flex items-center gap-3 mb-1 mt-6 first:mt-0">
         <span className="text-[11px] font-semibold text-gray-400 tracking-widest uppercase whitespace-nowrap">
           {label}
         </span>
         <div className="flex-1 h-px bg-gray-100" />
       </div>
-   
       <div>{children}</div>
+    </div>
+  )
+}
+
+const CalendarIcon = ({ color }) => (
+  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+    <rect x="2" y="3" width="12" height="11" rx="2" stroke={color} strokeWidth="1.5"/>
+    <path d="M5 1v3M11 1v3M2 7h12" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+)
+
+function DatePickerButton({ placeholder, value, onChange }) {
+  const inputRef = useRef(null)
+  const active = !!value
+  const formatted = value
+    ? new Date(value + "T00:00:00").toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+      })
+    : null
+
+  return (
+    <div style={{ position: "relative", userSelect: "none" }}>
+      <div
+        onClick={() => inputRef.current?.showPicker()}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "6px 10px", borderRadius: 9, cursor: "pointer",
+          border: `1.5px solid ${active ? "#111" : "#e5e5e5"}`,
+          background: active ? "#111" : "#f7f7f7",
+          color: active ? "#fff" : "#444",
+          fontSize: 12, fontWeight: 500,
+          whiteSpace: "nowrap",
+          transition: "all 0.15s",
+        }}
+      >
+        <span style={{ opacity: 0.75, display: "flex", alignItems: "center" }}>
+          <CalendarIcon color={active ? "#fff" : "#888"} />
+        </span>
+        <span>{formatted ?? placeholder}</span>
+        {active ? (
+          <span
+            onClick={(e) => {
+              e.stopPropagation()  
+              onChange("")
+            }}
+            style={{ marginLeft: 2, display: "flex", alignItems: "center", opacity: 0.6, cursor: "pointer" }}
+          >
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+              <path d="M1.5 1.5l6 6M7.5 1.5l-6 6"/>
+            </svg>
+          </span>
+        ) : (
+          <svg
+            width="9" height="9" viewBox="0 0 9 9" fill="none"
+            stroke="#888" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+            style={{ marginLeft: 2 }}
+          >
+            <path d="M1.5 3l3 3 3-3"/>
+          </svg>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          position: "absolute",
+          opacity: 0,
+          pointerEvents: "none",  
+        }}
+      />
     </div>
   )
 }
@@ -220,20 +283,14 @@ export default function ActivityPage() {
   const { changelogs, setChangelogs, loading, setLoading, error, setError } =
     useChangelogs()
   const { user } = useAuth()
+  const navigate      = useNavigate()
 
   const [taskMap,     setTaskMap]     = useState({})
   const [taskNameMap, setTaskNameMap] = useState({})
   const [projectMap,  setProjectMap]  = useState({})
-  const [search,      setSearch]      = useState("")
-  const [range,       setRange]       = useState(30)
-  const [rangeOpen,   setRangeOpen]   = useState(false)
-
-  const RANGES = [
-    { label: "Last 7 Days",  days: 7 },
-    { label: "Last 30 Days", days: 30 },
-    { label: "Last 90 Days", days: 90 },
-    { label: "All Time",     days: Infinity },
-  ]
+  const [search,   setSearch]   = useState("")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo,   setDateTo]   = useState("")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,9 +336,14 @@ export default function ActivityPage() {
   }, [])
 
   const grouped = useMemo(() => {
+    const from = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : null
+    const to   = dateTo   ? new Date(dateTo).setHours(23, 59, 59, 999) : null
+
     const sorted = [...(changelogs || [])]
       .filter((log) => {
-        if (!withinDays(log.created_at, range)) return false
+        const logTime = log.created_at ? new Date(log.created_at).getTime() : null
+        if (logTime && from && logTime < from) return false
+        if (logTime && to   && logTime > to)   return false
         if (!search.trim()) return true
         const q = search.toLowerCase()
         const t = (log.task_name || taskNameMap[String(log.task_id)] || "").toLowerCase()
@@ -302,166 +364,169 @@ export default function ActivityPage() {
       groups[groups.length - 1].items.push(log)
     })
     return groups
-  }, [changelogs, search, range, taskNameMap, projectMap, taskMap])
+  }, [changelogs, search, dateFrom, dateTo, taskNameMap, projectMap, taskMap])
 
   const totalCount = grouped.reduce((s, g) => s + g.items.length, 0)
-  const currentRange = RANGES.find((r) => r.days === range) || RANGES[1]
 
- return (
-  <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: "#F0EFED" }}>
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden mx-4 my-4 rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.07)] bg-white" style={{ isolation: "isolate" }}>
+  return (
+    <div className="flex flex-col h-full overflow-hidden" style={{ padding: "16px 16px 16px 0", backgroundColor: "#F0EFED" }}>
 
-      <div className="px-8 pt-6 pb-0 shrink-0">
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-3">
-          <span className="hover:text-gray-600 cursor-pointer transition-colors">Home</span>
-          <span>/</span>
-          <span className="text-gray-700 font-medium">Activity</span>
-        </div>
+      <div className="flex-1 flex flex-col min-h-0" style={{ marginLeft: "16px", position: "relative" }}>
 
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Activity</h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {loading
-                ? "Loading..."
-                : `${totalCount} ${totalCount === 1 ? "update" : "updates"} · ${currentRange.label.toLowerCase()}`}
-            </p>
-          </div>
+        <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", zIndex:0, filter:"drop-shadow(0 10px 24px rgba(0,0,0,0.10))" }}
+          viewBox="0 0 600 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 32 0 L 220 0 C 255 0, 258 40, 292 40 L 558 40 C 578 40 600 55 600 75 L 600 368 C 600 385 582 400 562 400 L 32 400 C 15 400 0 385 0 368 L 0 32 C 0 15 15 0 32 0 Z" fill="#ffffff"/>
+        </svg>
 
-          <div className="flex items-center gap-2 pb-1">
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm w-52">
-              <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 16 16">
-                <path stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                  d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zm4.5 1.5 2.5 2.5" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-[13px] text-gray-700 placeholder:text-gray-400"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="text-gray-300 hover:text-gray-500 transition-colors"
-                >
-                  ✕
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          style={{ position:"relative", zIndex:1, marginTop:"48px", backgroundColor:"#ffffff", borderRadius:"0 20px 20px 0" }}>
+
+          <div className="shrink-0 px-12 pb-2.5 bg-transparent border-b border-black/[0.07]">
+            <div className="max-w-7xl mx-auto">
+
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <button onClick={() => navigate("/projects")} className="hover:text-gray-700 transition-colors bg-transparent border-none cursor-pointer p-0 text-xs text-gray-400">
+                  Home
                 </button>
-              )}
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => setRangeOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-[13px] font-medium text-gray-600
-                  bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50
-                  transition-colors shadow-sm whitespace-nowrap"
-              >
-                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 16 16">
-                  <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-                  <path stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" d="M5 1v3m6-3v3M2 7h12" />
-                </svg>
-                {currentRange.label}
-                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 10 10">
-                  <path stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" d="m2 3.5 3 3 3-3" />
-                </svg>
-              </button>
-
-              {rangeOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setRangeOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1.5 z-20 w-44 bg-white border border-gray-200
-                    rounded-xl shadow-xl overflow-hidden">
-                    {RANGES.map((r) => (
-                      <button
-                        key={r.days}
-                        onClick={() => { setRange(r.days); setRangeOpen(false) }}
-                        className={`w-full text-left px-3.5 py-2.5 text-[13px] transition-colors flex items-center justify-between
-                          ${range === r.days
-                            ? "bg-blue-50 text-blue-700 font-semibold"
-                            : "text-gray-700 hover:bg-gray-50"}`}
-                      >
-                        {r.label}
-                        {range === r.days && (
-                          <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 14 14">
-                            <path stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d="M2.5 7 6 10.5l5.5-7" />
-                          </svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="h-px bg-gray-100 mt-4" />
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-8 pb-10">
-        {error && (
-          <div className="mt-6 rounded-xl px-4 py-3 text-sm bg-red-50 border border-red-200 text-red-600 flex items-center gap-2">
-            <span>⚠️</span>
-            <span>{error}</span>
-          </div>
-        )}
-
-        {loading && (
-          <div className="mt-6">
-            {["TODAY", "YESTERDAY"].map((label) => (
-              <div key={label} className="mb-4">
-                <div className="flex items-center gap-3 mb-1 mt-6 first:mt-0">
-                  <div className="h-2.5 bg-gray-100 rounded w-16 animate-pulse" />
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
-                {[...Array(3)].map((_, i) => <RowSkeleton key={i} />)}
+                <span className="text-gray-300">/</span>
+                <span className="text-gray-500 font-medium">Activity</span>
               </div>
-            ))}
-          </div>
-        )}
 
-        {!loading && !error && totalCount === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl">
-              📋
+              <div className="flex items-end justify-between gap-4 mt-1">
+                <div>
+                  <h1 className="text-[32px] font-bold text-gray-900 tracking-tight m-0">Activity</h1>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {loading
+                      ? "Loading..."
+                      : `${totalCount} ${totalCount === 1 ? "update" : "updates"}`}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pb-1">
+                  <DatePickerButton placeholder="From" value={dateFrom} onChange={setDateFrom} />
+                  <DatePickerButton placeholder="To" value={dateTo} onChange={setDateTo} />
+
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => { setDateFrom(""); setDateTo("") }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        padding: "6px 10px", borderRadius: 9, cursor: "pointer",
+                        border: "1.5px solid #e5e5e5",
+                        background: "#f7f7f7",
+                        color: "#888",
+                        fontSize: 12, fontWeight: 500,
+                        whiteSpace: "nowrap",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#fca5a5"
+                        e.currentTarget.style.background = "#fef2f2"
+                        e.currentTarget.style.color = "#ef4444"
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#e5e5e5"
+                        e.currentTarget.style.background = "#f7f7f7"
+                        e.currentTarget.style.color = "#888"
+                      }}
+                    >
+                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M1.5 1.5l6 6M7.5 1.5l-6 6" />
+                      </svg>
+                      Clear dates
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm w-52">
+                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 16 16">
+                      <path stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                        d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zm4.5 1.5 2.5 2.5" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-[13px] text-gray-700 placeholder:text-gray-400"
+                    />
+                    {search && (
+                      <button
+                        onClick={() => setSearch("")}
+                        className="text-gray-300 hover:text-gray-500 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-gray-100 mt-4" />
             </div>
-            <p className="font-semibold text-gray-700">No activity found</p>
-            <p className="text-sm text-gray-400 max-w-xs">
-              {search
-                ? `No results for "${search}". Try a different search.`
-                : "Task updates will appear here as they happen."}
-            </p>
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="mt-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Clear search
-              </button>
-            )}
           </div>
-        )}
 
-        {!loading && !error && grouped.map((group) => (
-          <DateGroup key={group.key} label={group.key}>
-            {group.items.map((log) => (
-              <ActivityRow
-                key={log.id ?? log.created_at}
-                log={log}
-                projectName={projectMap[taskMap[String(log.task_id)]] || "Unknown Project"}
-                currentUser={user}
-                taskNameMap={taskNameMap}
-              />
-            ))}
-          </DateGroup>
-        ))}
+          <div className="flex-1 overflow-y-auto px-12 pb-10">
+            <div className="max-w-7xl mx-auto">
+              {error && (
+                <div className="mt-6 rounded-xl px-4 py-3 text-sm bg-red-50 border border-red-200 text-red-600 flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {loading && (
+                <div className="mt-6">
+                  {["TODAY", "YESTERDAY"].map((label) => (
+                    <div key={label} className="mb-4">
+                      <div className="flex items-center gap-3 mb-1 mt-6 first:mt-0">
+                        <div className="h-2.5 bg-gray-100 rounded w-16 animate-pulse" />
+                        <div className="flex-1 h-px bg-gray-100" />
+                      </div>
+                      {[...Array(3)].map((_, i) => <RowSkeleton key={i} />)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!loading && !error && totalCount === 0 && (
+                <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl">
+                    📋
+                  </div>
+                  <p className="font-semibold text-gray-700">No activity found</p>
+                  <p className="text-sm text-gray-400 max-w-xs">
+                    {search
+                      ? `No results for "${search}". Try a different search.`
+                      : "Task updates will appear here as they happen."}
+                  </p>
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="mt-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!loading && !error && grouped.map((group) => (
+                <DateGroup key={group.key} label={group.key}>
+                  {group.items.map((log) => (
+                    <ActivityRow
+                      key={log.id ?? log.created_at}
+                      log={log}
+                      projectName={projectMap[taskMap[String(log.task_id)]] || "Unknown Project"}
+                      currentUser={user}
+                      taskNameMap={taskNameMap}
+                    />
+                  ))}
+                </DateGroup>
+              ))}
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div> 
-     </div> 
+    </div>
   )
 }
