@@ -3,13 +3,18 @@ import { createContext, useContext, useState, useEffect } from "react"
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(null)
+  const [user,    setUser]    = useState(() => {
+    if (typeof window === "undefined") return null
+    try {
+      const stored = localStorage.getItem("user")
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
 
-  // Clear session on app load (secure: force fresh login)
   useEffect(() => {
-    localStorage.removeItem("user")
-    localStorage.removeItem("authenticated")
     setLoading(false)
   }, [])
 
