@@ -1,3 +1,12 @@
+
+## Live URL Link
+
+🔗 **Demo:** https://taskbro-projectassestment.vercel.app/
+
+> Note: The application depends on the assessment backend API. Demo credentials can be provided separately if required.
+
+
+ 
 # Taskbro
 
 A React-based project management application built for a frontend developer assessment. Taskbro supports full project and task management with a drag-and-drop Kanban board, activity history, and member management all integrated with a live REST API.
