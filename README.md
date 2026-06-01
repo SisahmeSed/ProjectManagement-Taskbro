@@ -17,15 +17,15 @@ A React-based project management application built for a frontend developer asse
 
 ### Login Page
 
-![Login Page](./screenshots/Login-Page.png)
+![Login Page](./TaskBro/screenshots/Login-Page.png)
 
 ### Projects Dashboard
 
-![Projects Dashboard](./screenshots/Project-Page.png)
+![Projects Dashboard](./TaskBro/screenshots/Project-Page.png)
 
 ### Kanban Board
 
-![Kanban Board](./screenshots/Board-Page.png) 
+![Kanban Board](./TaskBro/screenshots/Board-Page.png)
 
 --
 
