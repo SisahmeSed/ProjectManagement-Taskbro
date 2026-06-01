@@ -1,7 +1,7 @@
-﻿
-import { useState, useRef } from "react"
+﻿import { useState, useRef } from "react"
 import { loginUser } from "../../api/auth.api"
 import { EyeOpen, EyeClosed } from "./shared/EyeIcons"
+import { useToast } from "../ui/Toast"
 
 function PillInput({ icon, type = "text", placeholder, value, onChange, error, autoFocus = false, rightSlot }) {
   return (
@@ -23,7 +23,6 @@ function PillInput({ icon, type = "text", placeholder, value, onChange, error, a
     </div>
   )
 }
-
 
 function PillButton({ loading, loadingText, children, onClick }) {
   return (
@@ -53,6 +52,7 @@ export default function LoginForm({ onSuccess, defaultUserId = "" }) {
   const [apiError, setApiError] = useState("")
   const [showPass, setShowPass] = useState(false)
   const submitting = useRef(false)
+  const { showToast } = useToast()
 
   const validate = () => {
     const e = {}
@@ -70,13 +70,21 @@ export default function LoginForm({ onSuccess, defaultUserId = "" }) {
       const res    = await loginUser(form)
       const result = res.data?.data
       if (typeof result === "string" && result.toLowerCase().includes("invalid")) {
-        setApiError("Invalid user ID or password."); return
+        setApiError("Invalid user ID or password.")
+        showToast("Invalid user ID or password.", "error")
+        return
       }
-      if (res.status === 201) { onSuccess({ user_id: form.user_id }); return }
+      if (res.status === 201) {
+        showToast("Welcome back!")
+        onSuccess({ user_id: form.user_id })
+        return
+      }
       setApiError("Unexpected response. Please try again.")
+      showToast("Unexpected response. Please try again.", "error")
     } catch (err) {
       console.error("Login error:", err)
       setApiError("Something went wrong. Please try again.")
+      showToast("Something went wrong. Please try again.", "error")
     } finally {
       setLoading(false); submitting.current = false
     }
