@@ -3,7 +3,7 @@ import { loginUser } from "../../api/auth.api"
 import { EyeOpen, EyeClosed } from "./shared/EyeIcons"
 import { useToast } from "../ui/Toast"
 
-function PillInput({ icon, type = "text", placeholder, value, onChange, error, autoFocus = false, rightSlot }) {
+function PillInput({ icon, type = "text", placeholder, value, onChange, error, autoComplete, autoFocus = false, rightSlot }) {
   return (
     <div className="flex flex-col gap-1">
       <div className={`flex items-center gap-3 rounded-full px-5 py-3 bg-gray-100 border-2 transition-all duration-150
@@ -15,7 +15,8 @@ function PillInput({ icon, type = "text", placeholder, value, onChange, error, a
           value={value}
           onChange={onChange}
           autoFocus={autoFocus}
-          className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
+          autoComplete={autoComplete}
+          className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
         />
         {rightSlot && <span className="shrink-0">{rightSlot}</span>}
       </div>
@@ -118,11 +119,21 @@ export default function LoginForm({ onSuccess, defaultUserId = "" }) {
           value={form.password}
           onChange={update("password")}
           error={errors.password}
+          autoComplete="current-password"
           rightSlot={
-            <button type="button" onClick={() => setShowPass(v => !v)}
-              className="text-gray-400 hover:text-gray-600 transition-colors">
-              {showPass ? <EyeClosed /> : <EyeOpen />}
-            </button>
+            form.password && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowPass(v => !v)
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPass ? <EyeClosed /> : <EyeOpen />}
+              </button>
+            )
           }
         />
       </div>
