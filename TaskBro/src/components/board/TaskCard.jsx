@@ -26,7 +26,13 @@ const STATUS_CONFIG = {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return null
-  return new Date(dateStr).toLocaleDateString("en-US", {
+  // NOTE: Backend stores Manila local time but labels it as UTC,
+  // causing a double +8h shift in the browser. Subtract 8h to
+  // correct — same fix applied in ActivityPage & TaskDetailPanel.
+  // Proper fix: have the backend store/return timestamps in true UTC.
+  const date = new Date(dateStr)
+  date.setHours(date.getHours() - 8)
+  return date.toLocaleDateString("en-US", {
     weekday: "short",
     day:     "numeric",
     month:   "short",
@@ -111,7 +117,7 @@ export default function TaskCard({ task, index, onClick, isSelected }) {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
                 <CalendarIcon />
-                {formatDate(task.updated_at) ?? "—"}
+                {formatDate(task.created_at) ?? "—"}
               </span>
               <span className="text-[10px] font-semibold tracking-widest text-gray-300 uppercase">
                 #{task.id}

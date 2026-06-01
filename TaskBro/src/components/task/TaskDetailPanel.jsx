@@ -358,7 +358,7 @@ export default function TaskDetailPanel({ task, onClose, onTaskUpdated }) {
 useEffect(() => {
   if (!task) { setLogs([]); return }
   fetchLogs(task.id)
-}, [task?.id, task?.status]) 
+}, [task?.id]) 
 
   useEffect(() => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100)
@@ -415,8 +415,8 @@ useEffect(() => {
         new_status: newStatus,
         remark:     `moved::${userName}||${task.status}->${newStatus}`,
       })
-      await fetchLogs(task.id)
       onTaskUpdated({ ...task, status: newStatus })
+      await fetchLogs(task.id)
       showToast(`Moved to "${newStatus}"`)
     } catch { showToast("Failed to move task", "error") }
     finally { setMoving(false) }

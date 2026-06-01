@@ -119,9 +119,7 @@ export default function BoardPage() {
     if (!updatedTask || typeof updatedTask !== "object") return
     setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t)))
     setSelectedTask((prev) => prev ? { ...prev, ...updatedTask } : prev)
-    setTimeout(fetchLogs, 800)
   }
-  const handleLogCreated  = () => setTimeout(fetchLogs, 800)
   const handleTaskClick   = (task) => setSelectedTask(task)
   const handleTasksChange = (updatedTasks) => {
     setTasks(updatedTasks)
@@ -290,7 +288,7 @@ export default function BoardPage() {
                   onAddTask={(status) => setAddingToCol(status)} />
               )}
             </div>
-            <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} onTaskUpdated={handleTaskUpdated} onLogCreated={handleLogCreated} />
+            <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} onTaskUpdated={handleTaskUpdated} />
           </div>
 
         </div>
