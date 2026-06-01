@@ -121,7 +121,7 @@ npm run preview   # Preview production build
 
 ## Challenges Encountered During Development
 
-- **Stateless login response** — The authentication endpoint returns only `"ok"` on success without a user profile or token payload. So I derived session state from the submitted credentials and stored them locally, treating a successful `201` response as the source of truth for the authenticated user.
+- **Stateless login response** — The authentication endpoint returns only `"ok"` on success without a user profile or token payload. So I treat a successful `201` response as an authentication signal and persist only minimal session state locally; the backend session cookie remains the real source of truth.
 
 - **Change password lookup dependency** — The change password endpoint requires both `user_id` and `email`, but neither is reliably available post-login given the stateless auth response. So I perform a member lookup when the modal opens to fill the required fields before the update request is issued.
 
@@ -150,6 +150,7 @@ npm run preview   # Preview production build
 - Sessions do not persist across page refresh — dependent on the assessment backend's auth implementation
 - All changelog entries are global; project-scoped filtering is handled client-side
 - Member roles are read-only; the API does not support role assignment or project-level membership
+
 
 ---
 
