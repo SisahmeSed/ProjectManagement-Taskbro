@@ -77,7 +77,7 @@ taskbro/
 ## Installation
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/SisahmeSed/ProjectManagement-Taskbro
 cd taskbro
 npm install
 ```
