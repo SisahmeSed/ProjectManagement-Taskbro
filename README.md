@@ -78,7 +78,7 @@ taskbro/
 
 ```bash
 git clone https://github.com/SisahmeSed/ProjectManagement-Taskbro
-cd taskbro
+cd ProjectManagement-Taskbro
 npm install
 ```
 
@@ -106,7 +106,7 @@ npm run preview   # Preview production build
 
 - **Unstructured changelog data** — The changelog API exposes only a free-text `remark` field instead of typed event metadata. So I adopted a lightweight encoding scheme (`moved::`, `comment::`) to embed structured data in the remark string, then wrote a frontend parser to transform raw entries into human-readable activity events.
 
-- **Limited task API fields** — The task endpoint returns a minimal field set with no assignee, priority, or label data. So I focused on layout and information hierarchy — structured field rows, status badges, and a parsed activity timeline — to ensure the task detail panel feels complete rather than exposing the API's constraints.
+- **Limited task API fields** — The task endpoint returns a minimal field set with no assignee, priority, or label data. So I focused on layout and information hierarchy structured field rows, status badges, and a parsed activity timeline to ensure the task detail panel feels complete rather than exposing the API's constraints.
 
 - **Drag-and-drop synchronization** — Status changes via drag-and-drop require three sequential side effects: a task `PATCH`, a changelog `POST`, and a UI state update. So I implemented an optimistic update strategy that reflects the change immediately, with a full rollback to the previous state and an error toast if any step in the chain fails.
 
